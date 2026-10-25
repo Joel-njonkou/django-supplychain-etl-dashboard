@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "django_filters", "drf_spectacular",
     "corsheaders",
+    "apps.agent.apps.AgentConfig",
     "apps.logistics",
 ]
 
@@ -136,6 +137,15 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+LLM_BASE_URL = env("LLM_BASE_URL", default="")
+LLM_API_KEY = env("LLM_API_KEY", default="")
+LLM_MODEL = env("LLM_MODEL", default="")
+LLM_TIMEOUT_S = env.int("LLM_TIMEOUT_S", default=30)
+AGENT_MAX_STEPS = env.int("AGENT_MAX_STEPS", default=4)
+LLM_ENABLED = bool(LLM_BASE_URL and LLM_MODEL)       # sinon : mode secours uniquement
+
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework_simplejwt.authentication.JWTAuthentication"],
@@ -145,8 +155,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.StandardPagination",
     "PAGE_SIZE": 25,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.UserRateThrottle"],
-    "DEFAULT_THROTTLE_RATES": {"user": "600/min", "signup": "10/hour"},
+    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.UserRateThrottle",
+                                            "rest_framework.throttling.ScopedRateThrottle"],
+    "DEFAULT_THROTTLE_RATES": {"user": "600/min", "agent": "20/min", "signup": "10/hour"},
 }
 
 

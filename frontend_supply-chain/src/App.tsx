@@ -4,7 +4,7 @@ import { Link, NavLink, Navigate, Outlet, Route, Routes, useNavigate } from "rea
 import { useMutation } from "@tanstack/react-query";
 import { api, tokens } from "@/api/client";
 import { Spinner } from "@/components/Spinner";
-import { Anomalies } from "@/pages/Anomalies";
+import { ChatPanel } from "@/components/agent/ChatPanel";
 import { Dashboard, Entrepots, Expeditions, Commandes, Transporteurs, EtlRuns, RecordDetail } from "@/pages/DataPages";
 
 function Login() {
@@ -87,7 +87,6 @@ function Shell() {
     ["/transporteurs", "Transporteurs", "◉"],
     ["/entrepots", "Entrepôts", "⌖"],
     ["/etl", "Exécutions ETL", "↻"],
-    ["/anomalies", "Anomalies", "△"],
   ];
   return (
     <div className="app-shell">
@@ -101,6 +100,7 @@ function Shell() {
         <header className="topbar"><div><span className="eyebrow">PLATEFORME LOGISTIQUE</span><strong>Analyse de la chaîne d’approvisionnement</strong></div><button className="button button-quiet" onClick={() => { tokens.clear(); navigate("/login", { replace: true }); }}>Déconnexion <span aria-hidden="true">↗</span></button></header>
         <div className="page-content"><RoutesContent /></div>
       </main>
+      <ChatPanel />
     </div>
   );
 }
@@ -119,8 +119,6 @@ function RoutesContent() {
       <Route path="entrepots/:id" element={<RecordDetail endpoint="/entrepots/" title="Entrepôt" />} />
       <Route path="etl" element={<EtlRuns />} />
       <Route path="etl/runs/:id" element={<RecordDetail endpoint="/etl/runs/" title="Exécution ETL" />} />
-      <Route path="anomalies" element={<Anomalies />} />
-      <Route path="anomalies/:id" element={<RecordDetail endpoint="/anomalies/" title="Anomalie" />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

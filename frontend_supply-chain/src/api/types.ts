@@ -7,15 +7,6 @@ export interface TimePoint extends Kpi { periode: string }
 export interface Bottleneck extends Kpi { region?: string; transporteur?: string }
 export interface Filters { date_min?: string; date_max?: string; region?: string; transporteur?:
     string; marche?: string; statut_livraison?: string }
-export interface Explanation {
-titre: string; resume: string; hypothese: string; confiance: "faible" | "moyenne" | "élevée";
-preuves: string[]; hypothese_alternative: string; limites: string[]; verifications: string[];
-}
-export interface Anomaly {
-id: number; granularite: string; periode_debut: string; periode_fin: string;
-taux_retard_pct: number; reference_pct: number; z_score: number; volume: number;
-explanation: Explanation | null; explanation_source: "llm" | "template" | "";
-}
 export interface Page<T> { count: number; next: string | null; previous: string | null; results: T[]
 }
 export interface Transporteur { id: number; code: string; nom: string }

@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .auth import RegistrationView
 from . import views as v
+from apps.agent.views import BottleneckExplainView, ChatView
 
 
 router = DefaultRouter()
@@ -22,4 +23,6 @@ urlpatterns = [
     path("kpis/timeseries/", v.KpiTimeseriesView.as_view()),
     path("kpis/bottlenecks/", v.KpiBottlenecksView.as_view()),
     path("", include(router.urls)),
+    path("agent/bottlenecks/explain/", BottleneckExplainView.as_view(), name="agent-bottleneck-explain"),
+    path("agent/chat/", ChatView.as_view(), name="agent-chat"),
 ]

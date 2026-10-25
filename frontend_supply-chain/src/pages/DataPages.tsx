@@ -9,6 +9,7 @@ import { KpiCard } from "@/components/KpiCard";
 import { QueryState } from "@/components/QueryState";
 import { Spinner } from "@/components/Spinner";
 import { TimeseriesChart } from "@/components/TimeseriesChart";
+import { ExplainBottlenecks } from "@/components/agent/ExplainBottlenecks";
 
 const money = (value: string | number | null | undefined) => value == null ? "—" : new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(Number(value));
 const date = (value: string | null | undefined) => value ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value)) : "—";
@@ -73,6 +74,10 @@ export function Dashboard() {
         <section className="panel chart-panel"><div className="panel-heading"><div><h2>Livraisons à temps</h2><p>Évolution {granularity === "day" ? "journalière" : granularity === "week" ? "hebdomadaire" : "mensuelle"}</p></div><div className="panel-controls"><select aria-label="Granularité temporelle" value={granularity} onChange={(event) => setGranularity(event.target.value as "day" | "week" | "month")}><option value="day">Jour</option><option value="week">Semaine</option><option value="month">Mois</option></select><span className="legend-dot">● À temps</span></div></div><QueryState q={series} empty={(data) => !data.length}>{(data) => <TimeseriesChart data={data} granularity={granularity} />}</QueryState></section>
         <section className="panel"><div className="panel-heading"><div><h2>Points de congestion</h2><p>Régions et transporteurs à surveiller</p></div></div><QueryState q={heatmap} empty={(data) => !data.length}>{(data) => <BottleneckHeatmap rows={data} onPick={(region, transporteur) => update({ region, transporteur: transporteur.toLowerCase().replaceAll(" ", "-") })} />}</QueryState></section>
       </div>
+      <ExplainBottlenecks
+        key={JSON.stringify([filters.date_min, filters.date_max, filters.region, filters.transporteur])}
+        filters={filters}
+      />
       <section className="panel bottleneck-table"><div className="panel-heading"><div><h2>Principaux goulets d’étranglement</h2><p>Classement par volume de retards</p></div><div className="panel-controls"><select aria-label="Regrouper par" value={breakdown} onChange={(event) => setBreakdown(event.target.value as "region" | "transporteur" | "region_transporteur")}><option value="region_transporteur">Région et transporteur</option><option value="region">Région</option><option value="transporteur">Transporteur</option></select><select aria-label="Volume minimum" value={minVolume} onChange={(event) => setMinVolume(Number(event.target.value))}><option value={1}>1+ expédition</option><option value={30}>30+ expéditions</option><option value={100}>100+ expéditions</option></select><select aria-label="Nombre de résultats" value={limit} onChange={(event) => setLimit(Number(event.target.value))}><option value={5}>5 résultats</option><option value={10}>10 résultats</option><option value={25}>25 résultats</option></select></div></div>
         <QueryState q={report} empty={(data) => !data.length}>{(data) => <div className="table-wrap"><table><thead><tr><th>Région</th><th>Transporteur</th><th>Expéditions</th><th>Retards</th><th>Taux</th><th>Coût moyen</th></tr></thead><tbody>{data.map((item, index) => <tr key={`${item.region}-${item.transporteur}-${index}`}><td>{item.region ?? "—"}</td><td>{item.transporteur ?? "—"}</td><td>{item.volume}</td><td>{item.retards}</td><td><span className="status-pill status-warning">{pct(item.taux_retard)}</span></td><td>{money(item.cout_moyen)}</td></tr>)}</tbody></table></div>}</QueryState>
       </section>
