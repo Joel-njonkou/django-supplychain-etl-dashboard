@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.db.models import Avg, Count, Q, Sum, F
 from .models import Commande, Expedition, Transporteur, Entrepot
+import requests 
 
 
 # 1. VUES DE L'EXERCICE (Classes de base)
@@ -266,3 +267,39 @@ def get_vouses_globales_enrichies(request):
             "delivery_status": statuts_livraison
         }
     })
+
+
+class AgentChatView(APIView):
+    
+    #Gère un fil de conversation unique et centralisé pour l'agent IA.
+    
+    def post(self, request):
+        # Récupération des données envoyées par le front (valeur du KPI, question, etc.)
+        user_message = request.data.get("message", "")
+        metric_context = request.data.get("context", {}) # Ex: { "transporteur": "A", "retard": 34.5 }
+
+        # Construction du prompt dynamique basé sur les données réelles
+        prompt = f"""
+        En tant qu'analyste Data Science et Supply Chain, analyse les données suivantes issues du tableau de bord :
+        Contexte de la métrique : {metric_context}
+        Question ou action de l'utilisateur : {user_message}
+
+        Fournis une explication analytique précise, factuelle et orientée solution en français.
+        """
+
+        url = "http://localhost:11434/api/generate"
+        payload = {
+            "model": "qwen2.5:1.5b",
+            "prompt": prompt,
+            "stream": False
+        }
+
+        try:
+            response = requests.post(url, json=payload, timeout=180)
+            if response.status_code == 200:
+                ai_response = response.json().get("response", "Réponse vide.")
+                return Response({"status": "success", "response": ai_response})
+            else:
+                return Response({"status": "error", "message": "Erreur du modèle local."}, status=500)
+        except requests.exceptions.ConnectionError:
+            return Response({"status": "error", "message": "Ollama ne répond pas."}, status=503)

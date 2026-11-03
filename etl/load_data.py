@@ -3,26 +3,26 @@ import sys
 import django
 import pandas as pd
 from datetime import datetime
-from django.utils.timezone import make_aware
+from django.utils.timezone import make_aware # cest la fonction django pour transformer une date naive en date consciente
 
 # Configuration du chemin relatif
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(current_dir, '..'))
+current_dir = os.path.dirname(os.path.abspath(__file__)) # on recherche dans quel path se trouve load_data.py
+project_root = os.path.abspath(os.path.join(current_dir, '..')) # on sort du dossier actuelle pour retrouver les modèles
 if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+    sys.path.insert(0, project_root)# on va fouiller la racine du projet
 
-# 1. Configuration de l'environnement Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'supplychain_core.settings')
-django.setup()
+# Configuration de l'environnement Django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'supplychain_core.settings') #indiquons le fichier de configuration settings 
+django.setup() # initialise un env django
 
+#importons nos modèles
 from logistics.models import Entrepot, Transporteur, Commande, Expedition
 
 def run_etl():
-    csv_path = os.path.join(project_root, 'etl', 'DataCoSupplyChainDataset.csv')
+    csv_path = os.path.join(project_root, 'etl', 'DataCoSupplyChainDataset.csv') #importons le csv du devoir
 
     
     print(" 1. EXTRACTION : Lecture du fichier CSV DataCo ")
-    
     # Lecture du fichier CSV avec l'encodage robuste
     df = pd.read_csv(csv_path, encoding='latin1')
     print(f"Nombre de lignes brutes chargées : {len(df)}")
@@ -40,7 +40,7 @@ def run_etl():
     # On utilise enumerate pour garantir un order_item_id unique pour CHAQUE ligne (1 à 180 519)
     for idx, (index, row) in enumerate(df.iterrows(), start=1):
 
-        # a. Gestion de l'Entrepôt (Département)
+        #  Gestion de l'Entrepôt (Département)
         dept_id = int(row['Department Id']) if pd.notna(row['Department Id']) else 0
         dept_name = str(row['Department Name']) if pd.notna(row['Department Name']) else 'Général'
         
@@ -53,7 +53,7 @@ def run_etl():
         else:
             entrepot = entrepot_objs[dept_id]
 
-        # b. Gestion du Transporteur (Shipping Mode)
+        #  Gestion du Transporteur (Shipping Mode)
         shipping_mode = str(row['Shipping Mode']) if pd.notna(row['Shipping Mode']) else 'Standard Class'
         if shipping_mode not in transporteur_objs:
             transporteur, _ = Transporteur.objects.get_or_create(name=shipping_mode)
@@ -61,7 +61,7 @@ def run_etl():
         else:
             transporteur = transporteur_objs[shipping_mode]
 
-        # c. Parsing des dates
+        #  Parsing des dates
         try:
             dt_order = pd.to_datetime(row['order date (DateOrders)']).to_pydatetime()
             order_date = make_aware(dt_order)
@@ -74,12 +74,12 @@ def run_etl():
         except Exception:
             shipping_date = None
 
-        # d. Nom du client
+        #  Nom du client
         fname = str(row['Customer Fname']) if pd.notna(row['Customer Fname']) else ''
         lname = str(row['Customer Lname']) if pd.notna(row['Customer Lname']) else ''
         customer_name = f"{fname} {lname}".strip() or "Client Inconnu"
 
-        # e. Création de l'objet Commande
+        # Création de l'objet Commande
         order_id = int(row['Order Id']) if pd.notna(row['Order Id']) else idx
 
         commande = Commande(
