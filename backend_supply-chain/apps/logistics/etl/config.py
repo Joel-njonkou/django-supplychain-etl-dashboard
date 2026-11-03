@@ -13,7 +13,15 @@ COLUMNS = {
     "Order Region": "region",
     "Order Country": "pays",
     "Order City": "ville",
+    "Order Item Id": "order_item_id",
+    "Product Card Id": "product_card_id",
+    "Product Name": "product_name",
+    "Category Name": "category_name",
     "Order Item Quantity": "quantite",
+    "Order Item Product Price": "prix_unitaire",
+    "Order Item Discount": "remise",
+    "Order Item Discount Rate": "taux_remise",
+    "Order Item Profit Ratio": "ratio_profit",
     "Order Item Total": "montant_ligne",
     "Order Profit Per Order": "profit_ligne",
     "Shipping Mode": "mode_expedition",
@@ -39,8 +47,8 @@ COUT_PAR_ARTICLE = 0.35
 
 PENALITE_JOUR_RETARD = 2.50
 
-REQUIRED = ["order_id", "date_commande", "statut", "client_id", "marche", "region",
-            "quantite", "mode_expedition", "delai_reel", "delai_prevu",
-            "statut_livraison_source"]
+REQUIRED = ["order_id", "order_item_id", "product_card_id", "date_commande", "statut",
+            "client_id", "marche", "region", "quantite", "montant_ligne", "profit_ligne",
+            "mode_expedition", "delai_reel", "delai_prevu", "statut_livraison_source"]
 
 

@@ -25,17 +25,18 @@ class Command(BaseCommand):
         run = EtlRun.objects.create(source_file=str(path))
         try:
             raw = extract(path, o["limit"])
-            orders, rejects, stats = transform(raw)
+            orders, line_items, rejects, stats = transform(raw)
             report = quality_report(orders, rejects, stats)
             self.stdout.write(report)
             if len(rejects):
                 out = settings.BASE_DIR.parent / "data" / "processed"
                 out.mkdir(parents=True, exist_ok=True)
                 rejects.to_csv(out / f"rejects_{timezone.now():%Y%m%d_%H%M%S}.csv", index=False)
-            counts = {"commandes": 0, "expeditions": 0} if o["dry_run"] else load(orders)
+            counts = {"commandes": 0, "expeditions": 0, "lignes_commande": 0} if o["dry_run"] else load(orders, line_items)
             run.status, run.message = EtlRun.Status.SUCCESS, report
             run.rows_read, run.rows_rejected = stats["rows_in"], stats["rows_rejected"]
             run.commandes_loaded, run.expeditions_loaded = counts["commandes"], counts["expeditions"]
+            run.lignes_commande_loaded = counts["lignes_commande"]
         except Exception as exc:
             run.status, run.message = EtlRun.Status.FAILED, repr(exc)
             raise

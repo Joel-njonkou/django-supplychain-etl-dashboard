@@ -39,6 +39,7 @@ class Commande(models.Model):
     region = models.CharField(max_length=60, db_index=True)
     pays = models.CharField(max_length=80)
     ville = models.CharField(max_length=80, blank=True)
+    nb_lignes_commande = models.PositiveIntegerField(default=0)
     nb_articles = models.PositiveIntegerField()
     montant_total = models.DecimalField(max_digits=12, decimal_places=2)
     profit_total = models.DecimalField(max_digits=12, decimal_places=2)
@@ -46,6 +47,27 @@ class Commande(models.Model):
         ordering = ["-date_commande"]
     def __str__(self):
         return f"Commande {self.order_id}"
+
+
+class LigneCommande(models.Model):
+    commande = models.ForeignKey(Commande, on_delete=models.CASCADE, related_name="lignes_commande")
+    order_item_id = models.PositiveBigIntegerField(unique=True)
+    product_card_id = models.PositiveIntegerField()
+    product_name = models.CharField(max_length=255, blank=True)
+    category_name = models.CharField(max_length=255, blank=True)
+    quantite = models.PositiveIntegerField()
+    prix_unitaire = models.DecimalField(max_digits=12, decimal_places=2)
+    remise = models.DecimalField(max_digits=12, decimal_places=2)
+    taux_remise = models.DecimalField(max_digits=12, decimal_places=6)
+    ratio_profit = models.DecimalField(max_digits=12, decimal_places=6)
+    montant_total = models.DecimalField(max_digits=12, decimal_places=2)
+    profit = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        ordering = ["order_item_id"]
+
+    def __str__(self):
+        return f"Ligne {self.order_item_id} de {self.commande}"
     
     
 class Expedition(models.Model):
@@ -89,6 +111,7 @@ class EtlRun(models.Model):
     rows_rejected = models.PositiveIntegerField(default=0)
     commandes_loaded = models.PositiveIntegerField(default=0)
     expeditions_loaded = models.PositiveIntegerField(default=0)
+    lignes_commande_loaded = models.PositiveIntegerField(default=0)
     message = models.TextField(blank=True)
     
     class Meta:

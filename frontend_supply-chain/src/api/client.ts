@@ -35,8 +35,13 @@ api.interceptors.response.use(undefined, async (error: unknown) => {
     return Promise.reject(error);
   }
   const request = error.config;
+  if (request.url?.includes("/auth/")) {
+    return Promise.reject(error);
+  }
   const refresh = localStorage.getItem(REFRESH);
-  if (!refresh || request._retry || request.url?.includes("/auth/")) {
+  if (!refresh || request._retry) {
+    tokens.clear();
+    if (window.location.pathname !== "/login") window.location.assign("/login");
     return Promise.reject(error);
   }
   request._retry = true;

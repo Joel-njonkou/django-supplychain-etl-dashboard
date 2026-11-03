@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "./client";
-import type { Anomaly, Bottleneck, Commande, Entrepot, EtlRun, Expedition, Explanation, Filters, Kpi, Page, TimePoint, Transporteur } from "./types";
+import type { Bottleneck, Commande, CommandeFilterOptions, Entrepot, EtlRun, Expedition, Filters, Kpi, Page, TimePoint, Transporteur } from "./types";
 
 const clean = (f: Filters) => Object.fromEntries(Object.entries(f).filter(([, v]) => v));
     export const useSummary = (f: Filters) =>
@@ -16,21 +16,6 @@ useQuery({ queryKey: ["bn", f, by, limit, minVolume],
             queryFn: async () => (await api.get<Bottleneck[]>("/kpis/bottlenecks/", { params: {
                 ...clean(f), by, limit, min_volume: minVolume } })).data });
 
-export const useAnomalies = () =>
-useQuery({ queryKey: ["anomalies"], queryFn: async () => {
-    const data = (await api.get<Page<Anomaly> | Anomaly[]>("/anomalies/")).data;
-    return Array.isArray(data) ? data : data.results;
-} });
-
-export const useExplain = () => {
-const qc = useQueryClient();
-return useMutation({
-    mutationFn: async (id: number) => (await api.post<{ source: string; explanation: Explanation
-        }>(`/anomalies/${id}/explain/`)).data,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["anomalies"] }),
-});
-};
-
 export const useTransporteurs = () => useQuery({
   queryKey: ["transporteurs"],
   queryFn: async () => (await api.get<Transporteur[]>("/transporteurs/")).data,
@@ -39,11 +24,15 @@ export const useEntrepots = () => useQuery({
   queryKey: ["entrepots"],
   queryFn: async () => (await api.get<Entrepot[]>("/entrepots/")).data,
 });
+export const useCommandeFilterOptions = () => useQuery({
+  queryKey: ["commande-filter-options"],
+  queryFn: async () => (await api.get<CommandeFilterOptions>("/commandes/options/")).data,
+});
 
-export function useCommandes(page: number, filters: Filters) {
+export function useCommandes(page: number, filters: Filters, ordering = "-date_commande,-id") {
   return useQuery({
-    queryKey: ["commandes", page, filters],
-    queryFn: async () => (await api.get<Page<Commande>>("/commandes/", { params: { ...clean(filters), page, ordering: "-date_commande" } })).data,
+    queryKey: ["commandes", page, filters, ordering],
+    queryFn: async () => (await api.get<Page<Commande>>("/commandes/", { params: { ...clean(filters), page, ordering } })).data,
   });
 }
 export function useExpeditions(page: number, filters: Filters) {

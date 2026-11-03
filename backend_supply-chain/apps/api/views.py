@@ -1,5 +1,6 @@
 
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from apps.logistics.models import Commande, Entrepot, EtlRun, Expedition, Transporteur
 from . import serializers as sz
 from .filters import CommandeFilter, ExpeditionFilter
@@ -23,8 +24,18 @@ class EntrepotViewSet(viewsets.ReadOnlyModelViewSet):
 class CommandeViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Commande.objects.select_related("expedition__transporteur", "expedition__entrepot")
     filterset_class = CommandeFilter
-    ordering_fields = ["date_commande", "montant_total", "order_id"]
+    ordering_fields = ["date_commande", "montant_total", "order_id", "nb_lignes_commande", "id"]
     ordering = ["-date_commande", "-id"]                      # ordre stable => pagination fiable
+
+    @action(detail=False, methods=["get"])
+    def options(self, request):
+        regions = Commande.objects.order_by().values_list("region", flat=True).distinct()
+        marches = Commande.objects.order_by().values_list("marche", flat=True).distinct()
+        return Response({
+            "regions": sorted(regions, key=str.casefold),
+            "marches": sorted(marches, key=str.casefold),
+        })
+
     def get_serializer_class(self):
         return sz.CommandeDetailSerializer if self.action == "retrieve" else sz.CommandeSerializer
 
