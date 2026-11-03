@@ -1,5 +1,6 @@
 
 import hashlib, json, logging
+from django.conf import settings
 from django.core.cache import cache
 from apps.logistics.models import EtlRun
 from . import prompts
@@ -32,7 +33,12 @@ def explain_bottlenecks(params, force=False):
         },
     ]
     try:
-        msg = chat(messages, json_mode=True)
+        msg = chat(
+            messages,
+            json_mode=True,
+            timeout=settings.LLM_EXPLAIN_TIMEOUT_S,
+            max_tokens=settings.LLM_EXPLAIN_MAX_TOKENS,
+        )
         exp = normalize_bottlenecks(parse_json(msg.content))
         ok, problems = validate_bottlenecks(exp, ev)
         if not ok:
@@ -49,7 +55,12 @@ def explain_bottlenecks(params, force=False):
                     ),
                 },
             ])
-            msg = chat(messages, json_mode=True)
+            msg = chat(
+                messages,
+                json_mode=True,
+                timeout=settings.LLM_EXPLAIN_TIMEOUT_S,
+                max_tokens=settings.LLM_EXPLAIN_MAX_TOKENS,
+            )
             exp = normalize_bottlenecks(parse_json(msg.content))
             ok, problems = validate_bottlenecks(exp, ev)
     except LLMUnavailable as e:

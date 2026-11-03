@@ -4,7 +4,7 @@ from django.conf import settings
 from . import prompts
 from .guardrails import check_numbers
 from .llm_client import LLMUnavailable, chat
-from .tools import TOOLS, ToolError, execute_tool
+from .tools import ToolError, available_tools, execute_tool
 log = logging.getLogger(__name__)
 
 MAX_CHARS = 6000      # borne la taille d'un résultat d'outil envoyé au modele
@@ -91,6 +91,18 @@ def _assistant_msg(m):
                             "function": {"name": c.function.name, "arguments": c.function.arguments
                                 or "{}"}}
                             for c in m.tool_calls]}
+
+def _retrieved_sources(evidence):
+    sources, seen = [], set()
+    for item in evidence:
+        for result in item.get("results", []) if isinstance(item, dict) else []:
+            ref = result.get("ref")
+            if ref and ref not in seen:
+                seen.add(ref)
+                sources.append({key: result[key] for key in (
+                    "ref", "source", "title", "section", "score"
+                ) if key in result})
+    return sources
     
 def run_agent(history, question):
     common_answer = _answer_common_data_question(question)
@@ -110,7 +122,7 @@ def run_agent(history, question):
     evidence, trace, answer = [], [], None
     try:
         for _ in range(settings.AGENT_MAX_STEPS):
-            m = chat(messages, tools=TOOLS)
+            m = chat(messages, tools=available_tools())
             if m.tool_calls:
                 messages.append(_assistant_msg(m))
                 for call in m.tool_calls:
@@ -139,7 +151,12 @@ def run_agent(history, question):
         log.warning("agent indisponible : %s", e)
         answer = None
     if answer:
-        return {"source": "llm", "answer": answer, "trace": trace}
+        return {
+            "source": "llm",
+            "answer": answer,
+            "trace": trace,
+            "sources": _retrieved_sources(evidence),
+        }
     return {"source": "fallback", "trace": trace, "answer": _fallback(evidence),
             "evidence": evidence[:3]}
     

@@ -141,8 +141,18 @@ LLM_BASE_URL = env("LLM_BASE_URL", default="")
 LLM_API_KEY = env("LLM_API_KEY", default="")
 LLM_MODEL = env("LLM_MODEL", default="")
 LLM_TIMEOUT_S = env.int("LLM_TIMEOUT_S", default=30)
+LLM_EXPLAIN_TIMEOUT_S = env.int("LLM_EXPLAIN_TIMEOUT_S", default=120)
+LLM_EXPLAIN_MAX_TOKENS = env.int("LLM_EXPLAIN_MAX_TOKENS", default=2000)
 AGENT_MAX_STEPS = env.int("AGENT_MAX_STEPS", default=4)
 LLM_ENABLED = bool(LLM_BASE_URL and LLM_MODEL)       # sinon : mode secours uniquement
+RAG_EMBEDDING_MODEL = env("RAG_EMBEDDING_MODEL", default="")
+RAG_API_KEY = env("RAG_API_KEY", default="")
+RAG_DOCUMENTS_DIR = env(
+    "RAG_DOCUMENTS_DIR",
+    default=str(BASE_DIR.parent / "data" / "knowledge_base"),
+)
+RAG_ENABLED = bool(RAG_API_KEY and RAG_EMBEDDING_MODEL)
+RAG_TOP_K = env.int("RAG_TOP_K", default=4)
 
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 

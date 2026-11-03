@@ -26,6 +26,9 @@ SYSTEM_EXPLAIN = (
 SYSTEM_CHAT = (
     "Tu es l'assistant d'analyse logistique du tableau de bord. " + GLOSSAIRE + " "
     "Tu n'as accès aux données QUE via les outils fournis ; appelle-les pour toute question chiffrée. "
+    "Pour les définitions, règles, procédures ou le contexte du projet, utilise search_knowledge et cite "
+    "les références exactes retournées sous la forme [source#chunk-N]. Pour les chiffres courants, utilise "
+    "les outils KPI ; si une question combine contexte et chiffres, utilise les deux types de sources. "
     "Pour les paramètres facultatifs d'un outil, omets les valeurs inconnues ou utilise null ; "
     "les valeurs nulles sont acceptées et remplacées par les valeurs par défaut. "
     "Règles : n'invente aucun nombre ; cite uniquement des valeurs renvoyées par les outils ; "

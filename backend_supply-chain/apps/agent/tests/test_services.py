@@ -2,6 +2,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from django.conf import settings
 
 from apps.agent import services
 from django.core.cache import cache
@@ -37,18 +38,20 @@ OPENROUTER_EXPLANATION = {
 def test_explain_accepte_une_reponse_llm_valide(monkeypatch):
     monkeypatch.setattr(services, "_cache_key", lambda params: "test-explain-valid")
     monkeypatch.setattr(services, "analyse_bottlenecks", lambda params: EVIDENCE)
-    monkeypatch.setattr(
-        services,
-        "chat",
-        lambda *args, **kwargs: SimpleNamespace(
-            content=json.dumps(VALID_EXPLANATION)
-        ),
-    )
+    calls = []
+
+    def fake_chat(*args, **kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(content=json.dumps(VALID_EXPLANATION))
+
+    monkeypatch.setattr(services, "chat", fake_chat)
 
     result = services.explain_bottlenecks({}, force=True)
 
     assert result["source"] == "llm"
     assert result["explanation"] == VALID_EXPLANATION
+    assert calls[0]["timeout"] == settings.LLM_EXPLAIN_TIMEOUT_S
+    assert calls[0]["max_tokens"] == settings.LLM_EXPLAIN_MAX_TOKENS
 
 
 @pytest.mark.django_db

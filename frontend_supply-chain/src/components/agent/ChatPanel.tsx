@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { chat, type ChatMessage } from "@/api/agent";
+import { chat, type ChatMessage, type ChatSource } from "@/api/agent";
 import { agentErrorMessage } from "@/api/errors";
 import { Spinner } from "@/components/Spinner";
 
 interface Message extends ChatMessage {
   source?: "llm" | "fallback" | "data";
   tools?: string[];
+  sources?: ChatSource[];
   failed?: boolean;
   retryQuestion?: string;
 }
@@ -26,7 +27,7 @@ export function ChatPanel() {
     mutationFn: ({ text, history }: { text: string; history: ChatMessage[] }) => chat(text, history),
     onSuccess: (response) => setMessages((current) => [
       ...current,
-      { role: "assistant", content: response.answer, source: response.source, tools: response.trace.map(({ outil }) => outil) },
+      { role: "assistant", content: response.answer, source: response.source, tools: response.trace.map(({ outil }) => outil), sources: response.sources },
     ]),
     onError: (error, variables) => setMessages((current) => [
       ...current,
@@ -98,6 +99,7 @@ export function ChatPanel() {
               <div className="chat-message-body">
                 <div className="chat-bubble">{message.content}</div>
                 {message.tools && message.tools.length > 0 && <small className="chat-meta">Sources consultées : {[...new Set(message.tools)].join(", ")}{message.source === "data" ? " · calcul direct" : message.source === "fallback" ? " · réponse de secours" : ""}</small>}
+                {message.sources && message.sources.length > 0 && <small className="chat-meta">Documents : {[...new Set(message.sources.map(({ title, section }) => section ? `${title} · ${section}` : title))].join(" ; ")}</small>}
                 {message.failed && <button className="chat-retry" disabled={send.isPending} onClick={() => retry(message, index)}>Réessayer cette question</button>}
               </div>
             </article>

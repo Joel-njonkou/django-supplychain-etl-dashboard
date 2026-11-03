@@ -1,6 +1,7 @@
 
 from rest_framework import serializers
 from apps.logistics.models import Commande, Entrepot, EtlRun, Expedition, Transporteur
+from apps.logistics.models import LigneCommande
 
 
 class TransporteurSerializer(serializers.ModelSerializer):
@@ -26,11 +27,19 @@ class CommandeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Commande
         fields = ["id", "order_id", "date_commande", "statut", "segment_client", "marche", "region",
-                "pays", "ville", "nb_articles", "montant_total", "profit_total"]
+                "pays", "ville", "nb_lignes_commande", "nb_articles", "montant_total", "profit_total"]
+
+class LigneCommandeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LigneCommande
+        fields = ["order_item_id", "product_card_id", "product_name", "category_name", "quantite",
+                  "prix_unitaire", "remise", "taux_remise", "ratio_profit", "montant_total", "profit"]
+
 class CommandeDetailSerializer(CommandeSerializer):
     expedition = ExpeditionSerializer(read_only=True)
+    lignes_commande = LigneCommandeSerializer(many=True, read_only=True)
     class Meta(CommandeSerializer.Meta):
-        fields = CommandeSerializer.Meta.fields + ["expedition"]
+        fields = CommandeSerializer.Meta.fields + ["expedition", "lignes_commande"]
 class EtlRunSerializer(serializers.ModelSerializer):
     class Meta:
         model = EtlRun

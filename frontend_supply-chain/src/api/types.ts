@@ -14,9 +14,19 @@ export interface Entrepot { id: number; code: string; nom: string }
 export interface Commande {
   id: number; order_id: number; date_commande: string; statut: string;
   segment_client: string; marche: string; region: string; pays: string; ville: string;
-  nb_articles: number; montant_total: string; profit_total: string;
+    nb_lignes_commande: number; nb_articles: number; montant_total: string; profit_total: string;
+    lignes_commande?: OrderLine[];
   expedition?: Expedition | null;
 }
+export interface CommandeFilterOptions {
+  regions: string[];
+  marches: string[];
+}
+  export interface OrderLine {
+    order_item_id: number; product_card_id: number; product_name: string; category_name: string;
+    quantite: number; prix_unitaire: string; remise: string; taux_remise: string;
+    ratio_profit: string; montant_total: string; profit: string;
+  }
 export interface Expedition {
   id: number; order_id: number; region: string; date_commande: string;
   transporteur: Transporteur; entrepot: Entrepot; date_expedition: string | null;
@@ -27,6 +37,6 @@ export interface Expedition {
 export interface EtlRun {
   id: number; started_at: string; finished_at: string | null;
   status: "running" | "success" | "failed"; source_file: string;
-  rows_read: number; rows_rejected: number; commandes_loaded: number;
+    rows_read: number; rows_rejected: number; commandes_loaded: number; lignes_commande_loaded: number;
   expeditions_loaded: number; message: string;
 }

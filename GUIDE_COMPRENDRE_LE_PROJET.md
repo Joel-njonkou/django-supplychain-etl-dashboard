@@ -46,6 +46,8 @@ Le navigateur ne se connecte pas directement à PostgreSQL. Il envoie des requê
 - `LLM_BASE_URL` : adresse API du fournisseur
 - `LLM_API_KEY` : clé privée du compte.
 - `LLM_MODEL` : identifiant du modèle choisi chez le fournisseur.
+- `RAG_EMBEDDING_MODEL` : identifiant du modèle d'embeddings utilisé par la recherche documentaire.
+- `RAG_API_KEY` : clé Gemini AI Studio dédiée à l'API d'embeddings, distincte de `LLM_API_KEY`.
 - `LLM_TIMEOUT_S` : durée maximale d’attente de l’appel.
 
 Les paramètres du LLM n’incluent pas la clé dans le code source. Le fichier `.env.example` contient un texte de remplacement ; il faut mettre la vraie clé seulement dans `.env`, qui est ignoré par Git.
@@ -121,7 +123,10 @@ Le module `apps/agent/` sépare les responsabilités :
 
 - `views.py` valide la requête HTTP et appelle le service approprié.
 - `tools.py` expose une liste limitée de fonctions de calcul autorisées ; il n’y a pas d’outil SQL libre.
-- `loop.py` pilote le chat : historique borné, appel du modèle, exécution des outils autorisés et vérification des nombres.
+- `loop.py` pilote le chat : historique borné, appel du modèle, recherche documentaire, exécution des outils autorisés et vérification des nombres.
+- `rag.py` classe les passages documentaires indexés par embeddings et recouvrement lexical ; il renvoie des références que le chat affiche comme sources.
+- `embedding_client.py` appelle l'API Gemini native `batchEmbedContents` avec la clé dédiée dans un en-tête HTTP.
+- `models.py` conserve les passages et leurs vecteurs dans PostgreSQL ; `index_agent_knowledge` indexe le guide et les fichiers Markdown/TXT du dossier de connaissances.
 - `services.py` calcule l’évidence des goulots, demande une explication au modèle et gère le cache.
 - `llm_client.py` utilise le client OpenAI compatible avec l’API OpenRouter et transforme les erreurs du fournisseur en erreur contrôlée.
 - `guardrails.py` vérifie le format de la réponse, les champs requis, le niveau de confiance et les nombres par rapport aux données calculées.
@@ -139,6 +144,12 @@ Le module `apps/agent/` sépare les responsabilités :
 Un code HTTP **402** provenant d’OpenRouter signifie que le fournisseur a refusé la génération, typiquement faute de crédits ou de budget disponible. Ce n’est pas un timeout ni une erreur de permission Django. Le code ne peut pas créer des crédits : il faut régler la facturation/quota OpenRouter ou choisir un modèle accessible avec le quota du compte. L’interface doit afficher le motif précis.
 
 Les trois suggestions prédéfinies du chat sont calculées directement à partir des données par Django ; elles ne nécessitent donc pas de génération LLM. Les questions libres utilisent le modèle lorsqu’il est activé.
+
+Le RAG sert aux questions sur le contexte, les définitions et les procédures documentées. Les KPI restent calculés à la demande par SQL via les outils Django ; ils ne sont pas remplacés par des passages documentaires. Configurer `RAG_EMBEDDING_MODEL=gemini-embedding-2` et `RAG_API_KEY`, puis lancer `python manage.py index_agent_knowledge` depuis `backend_supply-chain/`. Le corpus comprend le guide du projet et les fichiers `.md`/`.txt` de `data/knowledge_base/`.
+
+### Agrégation des lignes de commande
+
+Le CSV source contient une ligne par article commandé, pas nécessairement une ligne par commande. `transform.py` retourne les commandes agrégées et le détail de chaque ligne : quantités, ventes et profits sont additionnés sur toutes les lignes, tandis que chaque `Order Item Id` est conservé séparément. `load.py` charge ces détails dans `LigneCommande`, reliée à `Commande`. Les doublons stricts sont retirés ; un identifiant de ligne répété avec des valeurs différentes est rejeté pour éviter un double comptage. Le détail API/frontend d'une commande affiche maintenant la liste des produits, quantités, remises, ventes et profits.
 
 ## 6. Le frontend
 

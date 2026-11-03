@@ -19,11 +19,18 @@ def _get():
                         timeout=settings.LLM_TIMEOUT_S, max_retries=1)
     return _client
 
-def chat(messages, tools=None, json_mode=False):
+def chat(messages, tools=None, json_mode=False, timeout=None, max_tokens=None):
     # Retourne le message de l'assistant (content et/ou tool_calls). Lève LLMUnavailable en cas d'échec.
     if not settings.LLM_ENABLED:
         raise LLMUnavailable("LLM non configuré")
-    kw = dict(model=settings.LLM_MODEL, messages=messages, temperature=0.1, max_tokens=1000)
+    kw = dict(
+        model=settings.LLM_MODEL,
+        messages=messages,
+        temperature=0.1,
+        max_tokens=max_tokens if max_tokens is not None else 1000,
+    )
+    if timeout is not None:
+        kw["timeout"] = timeout
     if tools:
         kw.update(tools=tools, tool_choice="auto")
     elif json_mode:
@@ -39,7 +46,7 @@ def chat(messages, tools=None, json_mode=False):
     except Exception as exc:
         log.warning("Appel LLM échoué : %s", type(exc).__name__)
         raise LLMUnavailable(str(exc)) from exc
-        
+
 def parse_json(text):
     # Extrait un objet JSON d'une réponse éventuellement entourée de texte ou de balises ```
     if not text:

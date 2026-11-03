@@ -5,9 +5,10 @@ from .config import (DATE_FORMAT, STATUT_LIVRAISON, TARIF_MODE, COUT_PAR_ARTICLE
 
 
 TEXT_COLS = ["statut", "segment_client", "marche", "region", "pays", "ville",
-            "mode_expedition", "statut_livraison_source"]
-NUM_COLS = ["order_id", "client_id", "quantite", "montant_ligne", "profit_ligne",
-            "delai_reel", "delai_prevu"]
+            "product_name", "category_name", "mode_expedition", "statut_livraison_source"]
+NUM_COLS = ["order_id", "order_item_id", "product_card_id", "client_id", "quantite",
+            "prix_unitaire", "remise", "taux_remise", "ratio_profit", "montant_ligne",
+            "profit_ligne", "delai_reel", "delai_prevu"]
 
 def transform(raw: pd.DataFrame):
     stats = {"rows_in": len(raw)}
@@ -51,6 +52,13 @@ def transform(raw: pd.DataFrame):
     before = len(df)
     df = df.drop_duplicates()
     stats["duplicates_dropped"] = before - len(df)
+
+    duplicate_item_ids = df["order_item_id"].duplicated(keep=False)
+    if duplicate_item_ids.any():
+        duplicate_lines = df[duplicate_item_ids].assign(motif="order_item_id_duplique")
+        rejects = pd.concat([rejects, duplicate_lines], ignore_index=True)
+        df = df[~duplicate_item_ids]
+        stats["rows_rejected"] += len(duplicate_lines)
     
     # 4) Cohérence intra-commande : mode, délais et statut doivent être uniques par commande
     nun = df.groupby("order_id")[["mode_expedition", "delai_reel", "delai_prevu", "statut_livraison_source"]].nunique()
@@ -63,9 +71,23 @@ def transform(raw: pd.DataFrame):
     agg = {c: "first" for c in first}
     agg.update(quantite="sum", montant_ligne="sum", profit_ligne="sum")
     orders = df.sort_values("order_id").groupby("order_id", as_index=False).agg(agg)
-    orders = orders.rename(columns={"quantite": "nb_articles", "montant_ligne": "montant_total", "profit_ligne": "profit_total"})
-    for c in ("order_id", "client_id", "nb_articles", "delai_reel", "delai_prevu"):
+    orders = orders.rename(columns={"quantite": "nb_articles", "montant_ligne": "montant_total",
+                                   "profit_ligne": "profit_total"})
+    line_counts = df.groupby("order_id").size()
+    orders["nb_lignes_commande"] = orders["order_id"].map(line_counts).astype("int64")
+    for c in ("order_id", "client_id", "nb_lignes_commande", "nb_articles", "delai_reel", "delai_prevu"):
         orders[c] = orders[c].astype("int64")
+
+    line_items = df[["order_item_id", "order_id", "product_card_id", "product_name", "category_name",
+                     "quantite", "prix_unitaire", "remise", "taux_remise", "ratio_profit",
+                     "montant_ligne", "profit_ligne"]].copy()
+    line_items = line_items.rename(columns={"montant_ligne": "montant_total", "profit_ligne": "profit"})
+    for column in ("order_item_id", "order_id", "product_card_id", "quantite"):
+        line_items[column] = line_items[column].astype("int64")
+    for column in ("prix_unitaire", "remise", "montant_total", "profit"):
+        line_items[column] = line_items[column].round(2)
+    for column in ("taux_remise", "ratio_profit"):
+        line_items[column] = line_items[column].round(6)
     
     # 6) Champs dérivés
     orders["ecart_jours"] = orders["delai_reel"] - orders["delai_prevu"]
@@ -83,4 +105,5 @@ def transform(raw: pd.DataFrame):
     stats["incoherences_retard"] = int(((orders["en_retard"] != (orders["ecart_jours"] > 0)) &
         actives).sum())
     stats["orders_out"] = len(orders)
-    return orders, rejects, stats
+    stats["order_lines_out"] = len(line_items)
+    return orders, line_items, rejects, stats

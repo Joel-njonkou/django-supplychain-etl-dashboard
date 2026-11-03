@@ -41,11 +41,22 @@ Le fichier doit notamment définir `SECRET_KEY`, `DATABASE_URL` et `ALLOWED_HOST
 LLM_BASE_URL=lien
 LLM_API_KEY=cle-du-llm
 LLM_MODEL=modele
+RAG_EMBEDDING_MODEL=modele-embeddings-compatible
+RAG_API_KEY=cle-gemini-secrete
+LLM_TIMEOUT_S=30
+LLM_EXPLAIN_TIMEOUT_S=120
+LLM_EXPLAIN_MAX_TOKENS=2000
 ```
 
 Vous pouvez choisir un autre modèle disponible sur OpenRouter si nécessaire. Ne partagez jamais votre fichier `.env` et ne commitez pas de clé API dans le dépôt. Le fichier `.env.example` ne contient qu’un texte de remplacement pour la clé.
 
 Les trois questions suggérées dans le chat — taux de retard global, modes ayant le plus de retards et goulots indépendamment du volume — sont calculées directement par Django. Elles ne nécessitent pas de clé LLM.
+
+Le RAG utilise l'API native Gemini `batchEmbedContents` pour `gemini-embedding-2`. Définissez `RAG_EMBEDDING_MODEL=gemini-embedding-2` et `RAG_API_KEY` avec une clé Gemini AI Studio distincte de `LLM_API_KEY`. La clé est transmise dans l'en-tête HTTP et ne doit jamais être ajoutée à Git. Après les migrations, lancez `python manage.py index_agent_knowledge` depuis `backend_supply-chain/` pour indexer le guide du projet. Les documents métier Markdown ou TXT peuvent être ajoutés dans `data/knowledge_base/` ; relancez la commande après leur ajout ou modification. `RAG_DOCUMENTS_DIR` permet de choisir un autre dossier et `RAG_TOP_K` de modifier le nombre de passages retournés.
+
+`LLM_EXPLAIN_TIMEOUT_S` règle le temps maximal laissé à chacun des appels du modèle pour expliquer les goulots (120 secondes par défaut), indépendamment du timeout standard `LLM_TIMEOUT_S`. `LLM_EXPLAIN_MAX_TOKENS` réserve jusqu'à 2 000 tokens à cette réponse structurée ; les autres appels conservent leur limite standard. Le backend peut faire une seconde tentative après validation, et le frontend attend jusqu'à 245 secondes pour laisser les deux appels terminer.
+
+L'ETL regroupe les lignes par commande pour les KPI, mais conserve chaque ligne article dans `LigneCommande`. Les quantités, ventes et profits sont additionnés sur toutes les lignes. Le détail API/frontend d'une commande expose chaque produit, sa remise et ses montants ; la liste des commandes affiche le nombre de lignes et d'unités. L'historique ETL indique aussi le nombre de lignes chargées.
 
 ### 2. Démarrer PostgreSQL
 
@@ -103,6 +114,8 @@ python manage.py run_etl --file ../data/samples/mini.csv --limit 100 --dry-run
 
 Le pipeline enregistre le résultat de chaque exécution. Les lignes rejetées sont écrites dans `data/processed/`.
 
+Chaque ligne article est identifiée par `Order Item Id`. Les lignes strictement identiques sont dédoublonnées ; un identifiant répété avec des données différentes entraîne le rejet de toutes les occurrences concernées, afin d'éviter le double comptage.
+
 ### 5. Démarrer le frontend
 
 Dans un autre terminal :
@@ -156,7 +169,7 @@ npm run lint
 ```text
 backend_supply-chain/
   apps/
-    agent/                 Chat, explications, outils de données et garde-fous
+    agent/                 Chat, RAG documentaire, outils de données et garde-fous
     api/                   Routes REST, authentification et calcul des KPI
     logistics/             Modèles, administration et pipeline ETL
   config/                  Paramètres et routes Django
@@ -167,6 +180,7 @@ frontend_supply-chain/
     components/             Graphiques, formulaires et composants d’interface
     pages/                  Tableau de bord et pages métier
 data/
+  knowledge_base/           Documents Markdown/TXT indexés par le RAG
   samples/                  Petit CSV pour les essais
   raw/                      Emplacement attendu du fichier source complet
 ```

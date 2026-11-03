@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/client";
-import { useBottlenecks, useCommandes, useEntrepots, useEtlRuns, useExpeditions, useSummary, useTimeseries, useTransporteurs } from "@/api/hooks";
+import { useBottlenecks, useCommandeFilterOptions, useCommandes, useEntrepots, useEtlRuns, useExpeditions, useSummary, useTimeseries, useTransporteurs } from "@/api/hooks";
 import type { Filters, Page } from "@/api/types";
 import { BottleneckHeatmap } from "@/components/BottleneckHeatmap";
 import { KpiCard } from "@/components/KpiCard";
@@ -22,12 +22,13 @@ function PageHeading({ eyebrow, title, subtitle, action }: { eyebrow: string; ti
 
 function FilterBar({ filters, update, includeCarrier = true, includeDelivery = true, includeMarket = false }: { filters: Filters; update: (patch: Partial<Filters>) => void; includeCarrier?: boolean; includeDelivery?: boolean; includeMarket?: boolean }) {
   const carriers = useTransporteurs();
+  const commandOptions = useCommandeFilterOptions();
   return (
     <div className="filter-bar">
       <label>Du<input type="date" value={filters.date_min ?? ""} onChange={(event) => update({ date_min: event.target.value || undefined })} /></label>
       <label>Au<input type="date" value={filters.date_max ?? ""} onChange={(event) => update({ date_max: event.target.value || undefined })} /></label>
-      <label>Région<input placeholder="Toutes les régions" value={filters.region ?? ""} onChange={(event) => update({ region: event.target.value || undefined })} /></label>
-      {includeMarket && <label>Marché<input placeholder="Tous les marchés" value={filters.marche ?? ""} onChange={(event) => update({ marche: event.target.value || undefined })} /></label>}
+      <label>Région<select value={filters.region ?? ""} onChange={(event) => update({ region: event.target.value || undefined })}><option value="">Toutes les régions</option>{commandOptions.data?.regions.map((region) => <option key={region} value={region}>{region}</option>)}</select></label>
+      {includeMarket && <label>Marché<select value={filters.marche ?? ""} onChange={(event) => update({ marche: event.target.value || undefined })}><option value="">Tous les marchés</option>{commandOptions.data?.marches.map((marche) => <option key={marche} value={marche}>{marche}</option>)}</select></label>}
       {includeCarrier && <label>Transporteur<span className="filter-select">{carriers.isFetching && <Spinner label="Chargement" size="small" />}<select value={filters.transporteur ?? ""} onChange={(event) => update({ transporteur: event.target.value || undefined })}><option value="">Tous</option>{carriers.data?.map((item) => <option key={item.id} value={item.code}>{item.nom}</option>)}</select></span></label>}
       {includeDelivery && <label>Livraison<select value={filters.statut_livraison ?? ""} onChange={(event) => update({ statut_livraison: event.target.value || undefined })}><option value="">Tous les statuts</option><option value="en_retard">En retard</option><option value="a_temps">À temps</option><option value="en_avance">En avance</option><option value="annulee">Annulée</option></select></label>}
       <button className="button button-quiet" onClick={() => update({ date_min: undefined, date_max: undefined, region: undefined, transporteur: undefined, statut_livraison: undefined, marche: undefined })}>Effacer</button>
@@ -41,6 +42,7 @@ function useUrlFilters(): [Filters, (patch: Partial<Filters>) => void] {
     date_min: search.get("date_min") ?? undefined,
     date_max: search.get("date_max") ?? undefined,
     region: search.get("region") ?? undefined,
+    marche: search.get("marche") ?? undefined,
     transporteur: search.get("transporteur") ?? undefined,
     statut_livraison: search.get("statut_livraison") ?? undefined,
   };
@@ -93,8 +95,9 @@ function Pager<T>({ data, page, setPage }: { data: Page<T>; page: number; setPag
 export function Commandes() {
   const [filters, update] = useUrlFilters();
   const [page, setPage] = useState(1);
-  const query = useCommandes(page, filters);
-  return <div className="page-stack"><PageHeading eyebrow="OPÉRATIONS" title="Commandes" subtitle="Parcourez les commandes et leur état de traitement." /><FilterBar filters={filters} includeCarrier={false} includeDelivery={false} includeMarket update={(patch) => { setPage(1); update(patch); }} /><section className="panel"><QueryState q={query} empty={(data) => data.results.length === 0}>{(data) => <><div className="table-wrap"><table><thead><tr><th>Commande</th><th>Date</th><th>Statut</th><th>Marché</th><th>Région</th><th>Articles</th><th>Montant</th><th>Profit</th></tr></thead><tbody>{data.results.map((row) => <tr key={row.id}><td><Link className="table-link" to={`/commandes/${row.id}`}>#{row.order_id} ↗</Link></td><td>{date(row.date_commande)}</td><td><span className="status-pill">{row.statut}</span></td><td>{row.marche}</td><td>{row.region}</td><td>{row.nb_articles}</td><td>{money(row.montant_total)}</td><td>{money(row.profit_total)}</td></tr>)}</tbody></table></div><Pager data={data} page={page} setPage={setPage} /></>}</QueryState></section></div>;
+  const [ordering, setOrdering] = useState("-date_commande,-id");
+  const query = useCommandes(page, filters, ordering);
+  return <div className="page-stack"><PageHeading eyebrow="OPÉRATIONS" title="Commandes" subtitle="Parcourez les commandes et leur état de traitement." /><FilterBar filters={filters} includeCarrier={false} includeDelivery={false} includeMarket update={(patch) => { setPage(1); update(patch); }} /><section className="panel"><div className="panel-heading"><div><h2>Commandes</h2><p>Filtrez par région ou marché, puis triez par nombre de lignes.</p></div><label className="panel-controls">Trier par<select aria-label="Trier les commandes" value={ordering} onChange={(event) => { setPage(1); setOrdering(event.target.value); }}><option value="-date_commande,-id">Date récente</option><option value="nb_lignes_commande,-date_commande,-id">Lignes croissantes</option><option value="-nb_lignes_commande,-date_commande,-id">Lignes décroissantes</option></select></label></div><QueryState q={query} empty={(data) => data.results.length === 0}>{(data) => <><div className="table-wrap"><table><thead><tr><th>Commande</th><th>Date</th><th>Statut</th><th>Marché</th><th>Région</th><th>Lignes</th><th>Unités</th><th>Montant</th><th>Profit</th></tr></thead><tbody>{data.results.map((row) => <tr key={row.id}><td><Link className="table-link" to={`/commandes/${row.id}`}>#{row.order_id} ↗</Link></td><td>{date(row.date_commande)}</td><td><span className="status-pill">{row.statut}</span></td><td>{row.marche}</td><td>{row.region}</td><td>{row.nb_lignes_commande}</td><td>{row.nb_articles}</td><td>{money(row.montant_total)}</td><td>{money(row.profit_total)}</td></tr>)}</tbody></table></div><Pager data={data} page={page} setPage={setPage} /></>}</QueryState></section></div>;
 }
 
 export function Expeditions() {
@@ -117,18 +120,20 @@ export function Entrepots() {
 export function EtlRuns() {
   const [page, setPage] = useState(1);
   const query = useEtlRuns(page);
-  return <div className="page-stack"><PageHeading eyebrow="PIPELINE DE DONNÉES" title="Exécutions ETL" subtitle="Historique des imports et suivi de la qualité des données." /><section className="panel"><QueryState q={query} empty={(data) => data.results.length === 0}>{(data) => <><div className="table-wrap"><table><thead><tr><th>Démarrage</th><th>Statut</th><th>Fichier source</th><th>Lignes lues</th><th>Rejets</th><th>Commandes chargées</th><th>Expéditions chargées</th><th>Fin</th><th>Détails</th></tr></thead><tbody>{data.results.map((row) => <tr key={row.id}><td>{dateTime(row.started_at)}</td><td><span className={`status-pill ${row.status === "success" ? "status-success" : row.status === "failed" ? "status-error" : ""}`}>{row.status}</span></td><td className="source-file">{row.source_file}</td><td>{row.rows_read.toLocaleString("fr-FR")}</td><td>{row.rows_rejected.toLocaleString("fr-FR")}</td><td>{row.commandes_loaded.toLocaleString("fr-FR")}</td><td>{row.expeditions_loaded.toLocaleString("fr-FR")}</td><td>{dateTime(row.finished_at)}</td><td><Link className="table-link" to={`/etl/runs/${row.id}`}>Voir ↗</Link></td></tr>)}</tbody></table></div><Pager data={data} page={page} setPage={setPage} /></>}</QueryState></section></div>;
+  return <div className="page-stack"><PageHeading eyebrow="PIPELINE DE DONNÉES" title="Exécutions ETL" subtitle="Historique des imports et suivi de la qualité des données." /><section className="panel"><QueryState q={query} empty={(data) => data.results.length === 0}>{(data) => <><div className="table-wrap"><table><thead><tr><th>Démarrage</th><th>Statut</th><th>Fichier source</th><th>Lignes lues</th><th>Rejets</th><th>Commandes chargées</th><th>Lignes chargées</th><th>Expéditions chargées</th><th>Fin</th><th>Détails</th></tr></thead><tbody>{data.results.map((row) => <tr key={row.id}><td>{dateTime(row.started_at)}</td><td><span className={`status-pill ${row.status === "success" ? "status-success" : row.status === "failed" ? "status-error" : ""}`}>{row.status}</span></td><td className="source-file">{row.source_file}</td><td>{row.rows_read.toLocaleString("fr-FR")}</td><td>{row.rows_rejected.toLocaleString("fr-FR")}</td><td>{row.commandes_loaded.toLocaleString("fr-FR")}</td><td>{row.lignes_commande_loaded.toLocaleString("fr-FR")}</td><td>{row.expeditions_loaded.toLocaleString("fr-FR")}</td><td>{dateTime(row.finished_at)}</td><td><Link className="table-link" to={`/etl/runs/${row.id}`}>Voir ↗</Link></td></tr>)}</tbody></table></div><Pager data={data} page={page} setPage={setPage} /></>}</QueryState></section></div>;
 }
 
 const detailLabels: Record<string, string> = {
   id: "Identifiant", order_id: "Commande", date_commande: "Date de commande", statut: "Statut",
+  nb_lignes_commande: "Lignes de commande", lignes_commande: "Détail des lignes",
   segment_client: "Segment client", marche: "Marché", region: "Région", pays: "Pays", ville: "Ville",
   nb_articles: "Nombre d’articles", montant_total: "Montant total", profit_total: "Profit total",
   date_expedition: "Date d’expédition", delai_prevu_jours: "Délai prévu", delai_reel_jours: "Délai réel",
   ecart_jours: "Écart de délai", statut_livraison: "Statut de livraison", en_retard: "En retard",
   cout_estime: "Coût estimé", code: "Code", nom: "Nom", started_at: "Démarrage", finished_at: "Fin",
   source_file: "Fichier source", rows_read: "Lignes lues", rows_rejected: "Lignes rejetées",
-  commandes_loaded: "Commandes chargées", expeditions_loaded: "Expéditions chargées", message: "Rapport",
+  commandes_loaded: "Commandes chargées", lignes_commande_loaded: "Lignes chargées",
+  expeditions_loaded: "Expéditions chargées", message: "Rapport",
 };
 
 function formatDetail(value: unknown): string {
@@ -145,5 +150,8 @@ export function RecordDetail({ endpoint, title }: { endpoint: string; title: str
     queryFn: async () => (await api.get<Record<string, unknown>>(`${endpoint}${id}/`)).data,
     enabled: Boolean(id),
   });
-  return <div className="page-stack"><PageHeading eyebrow="DÉTAIL" title={`${title} ${id ? `#${id}` : ""}`} subtitle="Informations retournées par l’API." action={<Link className="button button-quiet" to="..">← Retour</Link>} /><section className="panel"><QueryState q={query}>{(record) => <dl className="detail-grid">{Object.entries(record).map(([key, value]) => <div key={key}><dt>{detailLabels[key] ?? key.replaceAll("_", " ")}</dt><dd className={typeof value === "object" && value ? "detail-json" : ""}>{formatDetail(value)}</dd></div>)}</dl>}</QueryState></section></div>;
+  return <div className="page-stack"><PageHeading eyebrow="DÉTAIL" title={`${title} ${id ? `#${id}` : ""}`} subtitle="Informations retournées par l’API." action={<Link className="button button-quiet" to="..">← Retour</Link>} /><QueryState q={query}>{(record) => {
+    const lineItems = Array.isArray(record.lignes_commande) ? record.lignes_commande as Array<Record<string, unknown>> : null;
+    return <><section className="panel"><dl className="detail-grid">{Object.entries(record).filter(([key]) => key !== "lignes_commande").map(([key, value]) => <div key={key}><dt>{detailLabels[key] ?? key.replaceAll("_", " ")}</dt><dd className={typeof value === "object" && value ? "detail-json" : ""}>{formatDetail(value)}</dd></div>)}</dl></section>{lineItems && <section className="panel"><div className="panel-heading"><div><h2>Lignes de commande</h2><p>{lineItems.length} produit(s), détails et montants par ligne</p></div></div><div className="table-wrap"><table><thead><tr><th>Ligne</th><th>Produit</th><th>Catégorie</th><th>Quantité</th><th>Prix unitaire</th><th>Remise</th><th>Montant</th><th>Profit</th></tr></thead><tbody>{lineItems.map((item) => <tr key={String(item.order_item_id)}><td>{String(item.order_item_id)}</td><td>{String(item.product_name ?? "—")}</td><td>{String(item.category_name ?? "—")}</td><td>{String(item.quantite ?? "—")}</td><td>{money(item.prix_unitaire as string | number | null)}</td><td>{money(item.remise as string | number | null)}</td><td>{money(item.montant_total as string | number | null)}</td><td>{money(item.profit as string | number | null)}</td></tr>)}</tbody></table></div></section>}</>;
+  }}</QueryState></div>;
 }

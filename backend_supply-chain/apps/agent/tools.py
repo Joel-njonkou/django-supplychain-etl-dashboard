@@ -1,7 +1,9 @@
 
 from datetime import date
+from django.conf import settings
 from apps.api import kpis
 from .analysis import analyse_bottlenecks
+from .llm_client import LLMUnavailable
 
 class ToolError(Exception):
     pass
@@ -13,8 +15,8 @@ FILTERS = {
         "standard-class", "second-class", "first-class", "same-day", None]},
 }
 
-def _fn(name, desc, extra=None, required=None):
-    props = {**FILTERS, **(extra or {})}
+def _fn(name, desc, extra=None, required=None, include_filters=True):
+    props = {**(FILTERS if include_filters else {}), **(extra or {})}
     return {"type": "function", "function": {
         "name": name, "description": desc,
         "parameters": {"type": "object", "properties": props, "required": required or [],
@@ -30,9 +32,20 @@ TOOLS = [
         "limit": {"type": ["integer", "null"], "minimum": 1, "maximum": 20}}),
     _fn("analyse_goulots", "Analyse complète : retards en excès, part de variabilité expliquée par mode et par "
                             "région, écart de planification, constats. À privilégier pour « pourquoi » ou « où »."),
+    _fn("search_knowledge", "Recherche les consignes, définitions et explications documentées. À utiliser pour "
+                            "les questions de contexte ou de procédure, pas pour calculer des KPI.",
+        {"query": {"type": "string", "minLength": 3, "maxLength": 500},
+         "limit": {"type": ["integer", "null"], "minimum": 1, "maximum": 8}},
+        required=["query"], include_filters=False),
 ]
 
 ALLOWED = {t["function"]["name"]: set(t["function"]["parameters"]["properties"]) for t in TOOLS}
+
+def available_tools():
+    return [
+        tool for tool in TOOLS
+        if tool["function"]["name"] != "search_knowledge" or settings.RAG_ENABLED
+    ]
 
 def _clean(args):
     out = {}
@@ -56,6 +69,16 @@ def execute_tool(name, args):
     inconnus = set(args) - ALLOWED[name]
     if inconnus:
         raise ToolError(f"paramètres non autorisés : {sorted(inconnus)}")
+    if name == "search_knowledge":
+        query = args.get("query")
+        if not isinstance(query, str) or not query.strip() or len(query) > 500:
+            raise ToolError("query doit contenir entre 1 et 500 caractères")
+        try:
+            from .rag import retrieve
+            return retrieve(query, args.get("limit"))
+        except LLMUnavailable as exc:
+            raise ToolError("recherche documentaire indisponible") from exc
+
     f = _clean(args)
     qs = kpis.base_queryset(f)
     if name == "kpi_summary":

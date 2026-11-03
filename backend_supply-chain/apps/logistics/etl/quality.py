@@ -5,8 +5,9 @@ def quality_report(orders, rejects, stats) -> str:
     lines = [
         f"Lignes lues : {stats.get('rows_in', 0)}",
         f"Lignes rejetées : {stats.get('rows_rejected', 0)}",
-        f"Doublons supprimés : {stats.get('duplicated_dropped', 0)}",
+        f"Doublons supprimés : {stats.get('duplicates_dropped', 0)}",
         f"Commandes produites : {stats.get('orders_out', 0)}",
+        f"Lignes de commande   : {stats.get('order_lines_out', 0)}",
         f"Commandes incohérentes : {stats.get('commandes_incoherentes', 0)}",
         f"Incohérences retard    : {stats.get('incoherences_retard', 0)}",
         f"Taux d'annulation      : {1 - len(actives) / len(orders) if len(orders) > 0 else 0:.1%}",

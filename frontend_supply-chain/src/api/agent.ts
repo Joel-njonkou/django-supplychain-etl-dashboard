@@ -39,11 +39,20 @@ export interface ChatTraceItem {
   arguments: Record<string, unknown>;
 }
 
+export interface ChatSource {
+  ref: string;
+  source: string;
+  title: string;
+  section: string;
+  score: number;
+}
+
 export interface ChatResponse {
   source: "llm" | "fallback" | "data";
   answer: string;
   trace: ChatTraceItem[];
   evidence?: unknown[];
+  sources?: ChatSource[];
 }
 
 export async function explainBottlenecks(filters: Filters, refresh = false): Promise<ExplainResponse> {
@@ -51,7 +60,7 @@ export async function explainBottlenecks(filters: Filters, refresh = false): Pro
   return (await api.post<ExplainResponse>(
     "/agent/bottlenecks/explain/",
     { date_min, date_max, region, transporteur },
-    { params: refresh ? { refresh: "true" } : undefined },
+    { params: refresh ? { refresh: "true" } : undefined, timeout: 245_000 },
   )).data;
 }
 
