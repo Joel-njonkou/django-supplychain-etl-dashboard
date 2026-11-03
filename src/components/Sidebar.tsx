@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import {
   BarChart3,
-  Truck,
-  MapPin,
-  DollarSign,
+  LayoutDashboard,
   ChevronLeft,
   ChevronRight,
   Boxes
@@ -17,10 +15,10 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const [collapsed, setCollapsed] = useState(false);
 
-  // Exactement 4 rubriques stratégiques clés
+  // Correspondance exacte avec les vues de App.tsx ('logistique' et 'globale')
   const menuItems = [
-    { id: 'overview', label: 'Vue Globale', icon: BarChart3 },
-    { id: 'map', label: 'vue detaillée', icon: MapPin },
+    { id: 'logistique', label: 'Dashboard Logistique', icon: LayoutDashboard },
+    { id: 'globale', label: 'Analyse Globale', icon: BarChart3 },
   ];
 
   return (
@@ -49,11 +47,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         </button>
       </div>
 
-      {/* Navigation (4 Entrées) */}
+      {/* Navigation (Vues principales) */}
       <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          // Si on est sur 'logistique' OU dans le 'chat', on garde l'onglet logistique actif dans la sidebar
+          const isActive = activeTab === item.id || (activeTab === 'chat' && item.id === 'logistique');
+         
           return (
             <button
               key={item.id}

@@ -12,7 +12,11 @@ import {
   AlertTriangle
 } from 'lucide-react';
 
-export const DashboardLogistique: React.FC = () => {
+interface DashboardLogistiqueProps {
+  onRowClick: (contextData: any) => void;
+}
+
+export const DashboardLogistique: React.FC<DashboardLogistiqueProps> = ({ onRowClick }) => {
   const [tauxLivraison, setTauxLivraison] = useState<TauxLivraisonData | null>(null);
   const [coutMoyen, setCoutMoyen] = useState<CoutMoyenData | null>(null);
   const [pointsBlocage, setPointsBlocage] = useState<PointDeBlocage[]>([]);
@@ -56,7 +60,7 @@ export const DashboardLogistique: React.FC = () => {
 
   return (
     <div className="p-6 font-sans space-y-5 text-slate-100 w-full">
-     
+    
       {/* En-tête */}
       <div className="flex items-center space-x-2 pb-2 border-b border-slate-800/80">
         <Boxes className="w-5 h-5 text-sky-400" />
@@ -64,10 +68,10 @@ export const DashboardLogistique: React.FC = () => {
           DataSupply — Vue Synthétique Logistique
         </span>
       </div>
-  
+ 
       {/* Barre de KPI Synthétique */}
       <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-3 grid grid-cols-2 md:grid-cols-4 gap-3">
-       
+      
         <div className="flex flex-col justify-center px-2">
           <div className="flex items-center space-x-1.5 text-slate-400 text-[11px] mb-0.5">
             <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
@@ -166,7 +170,7 @@ export const DashboardLogistique: React.FC = () => {
         <div className="flex items-center space-x-1.5 mb-2.5">
           <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
           <h2 className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
-            Analyse des Points de Blocage par Région
+            Analyse des Points de Blocage par Région (Cliquez sur une ligne pour l'analyser avec l'IA)
           </h2>
         </div>
         <div className="overflow-x-auto">
@@ -186,7 +190,16 @@ export const DashboardLogistique: React.FC = () => {
                   : 0;
 
                 return (
-                  <tr key={index} className="hover:bg-slate-800/30 transition-colors">
+                  <tr
+                    key={index}
+                    onClick={() => onRowClick({
+                      region: item.commande__order_region,
+                      total_expeditions: item.total_expeditions,
+                      retards: item.total_retards,
+                      taux_retard: `${ratio}%`
+                    })}
+                    className="hover:bg-sky-950/30 cursor-pointer transition-colors"
+                  >
                     <td className="py-2 px-3 font-medium text-slate-200">{item.commande__order_region}</td>
                     <td className="py-2 px-3 text-slate-400">{item.total_expeditions.toLocaleString()}</td>
                     <td className="py-2 px-3 text-rose-400 font-semibold">{item.total_retards.toLocaleString()}</td>
