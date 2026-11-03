@@ -1,10 +1,24 @@
+import { Navigate, Route, Routes } from "react-router-dom";
+
+import Layout from "@/components/Layout";
+import RequireAuth from "@/components/RequireAuth";
+import Anomalies from "@/pages/Anomalies";
+import Commandes from "@/pages/Commandes";
+import Dashboard from "@/pages/Dashboard";
+import Login from "@/pages/Login";
+
 export default function App() {
   return (
-    <main className="min-h-screen bg-slate-50 p-8">
-      <h1 className="text-2xl font-semibold text-slate-900">
-        Tableau de bord — chaîne logistique
-      </h1>
-      <p className="mt-2 text-sm text-slate-600">Squelette React opérationnel.</p>
-    </main>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route element={<RequireAuth />}>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/anomalies" element={<Anomalies />} />
+          <Route path="/commandes" element={<Commandes />} />
+        </Route>
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
