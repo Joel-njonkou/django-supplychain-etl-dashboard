@@ -62,3 +62,14 @@ export interface Transporteur {
   code: string;
   nom: string;
 }
+
+export interface Expedition {
+  id: number;
+  order_id: number;
+  date_commande: string;
+  region: string;
+  transporteur: Transporteur;
+  statut_livraison: "a_temps" | "en_avance" | "en_retard" | "annulee";
+  ecart_jours: number | null;
+  cout_estime: string;
+}

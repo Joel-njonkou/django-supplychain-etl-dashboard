@@ -1,7 +1,17 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/api/client";
-import type { Anomaly, Bottleneck, Explanation, Filters, Kpi, Page, TimePoint, Transporteur } from "@/api/types";
+import type {
+  Anomaly,
+  Bottleneck,
+  Expedition,
+  Explanation,
+  Filters,
+  Kpi,
+  Page,
+  TimePoint,
+  Transporteur,
+} from "@/api/types";
 
 export type Granularite = "day" | "week" | "month";
 
@@ -84,5 +94,18 @@ export function useTransporteurs() {
       return reponse.data;
     },
     staleTime: Infinity,
+  });
+}
+
+export function useExpeditions(filtres: Filters, page: number, taille: number, tri: string) {
+  return useQuery({
+    queryKey: ["expeditions", filtres, page, taille, tri],
+    queryFn: async () => {
+      const reponse = await api.get<Page<Expedition>>("/expeditions/", {
+        params: { ...sansVides(filtres), page, page_size: taille, ordering: tri },
+      });
+      return reponse.data;
+    },
+    placeholderData: keepPreviousData,
   });
 }

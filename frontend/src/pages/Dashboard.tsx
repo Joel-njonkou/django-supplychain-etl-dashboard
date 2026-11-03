@@ -1,4 +1,6 @@
 import { useAnomalies, useBottlenecks, useSummary, useTimeseries, useTransporteurs } from "@/api/hooks";
+import BottleneckHeatmap from "@/components/BottleneckHeatmap";
+import BottleneckTable from "@/components/BottleneckTable";
 import CarrierBars from "@/components/charts/CarrierBars";
 import TimeseriesChart from "@/components/charts/TimeseriesChart";
 import FilterBar from "@/components/FilterBar";
@@ -15,6 +17,8 @@ export default function Dashboard() {
   const serie = useTimeseries(filtres, "week");
   const anomalies = useAnomalies("week");
   const parTransporteur = useBottlenecks(filtres, "transporteur", 10);
+  const parCellule = useBottlenecks(filtres, "region_transporteur", 100);
+  const goulots = useBottlenecks(filtres, "region_transporteur", 10);
   const transporteurs = useTransporteurs();
 
   const nomActif = transporteurs.data?.find((t) => t.code === filtres.transporteur)?.nom;
@@ -22,6 +26,12 @@ export default function Dashboard() {
   function choisirTransporteur(nom: string) {
     const code = transporteurs.data?.find((t) => t.nom === nom)?.code;
     modifierFiltres({ transporteur: code === filtres.transporteur ? undefined : code });
+  }
+
+  function choisirCellule(region: string, nom: string) {
+    const code = transporteurs.data?.find((t) => t.nom === nom)?.code;
+    const dejaChoisie = filtres.region === region && filtres.transporteur === code;
+    modifierFiltres(dejaChoisie ? { region: undefined, transporteur: undefined } : { region, transporteur: code });
   }
 
   return (
@@ -73,6 +83,31 @@ export default function Dashboard() {
             {(lignes) => <CarrierBars lignes={lignes} actif={nomActif} onChoisir={choisirTransporteur} />}
           </QueryState>
           <p className="mt-2 text-xs text-slate-500">Cliquez sur une barre pour filtrer, à nouveau pour annuler.</p>
+        </section>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className={CADRE}>
+          <h2 className="mb-2 text-sm font-medium text-slate-700">Carte de chaleur : taux de retard région × transporteur</h2>
+          <QueryState requete={parCellule} vide={(lignes) => lignes.length === 0}>
+            {(lignes) => (
+              <BottleneckHeatmap
+                lignes={lignes}
+                regionActive={filtres.region}
+                transporteurActif={nomActif}
+                onChoisir={choisirCellule}
+              />
+            )}
+          </QueryState>
+          <p className="mt-2 text-xs text-slate-500">Vert : peu de retards · rouge : beaucoup. Cliquez sur une case pour filtrer.</p>
+        </section>
+
+        <section className={CADRE}>
+          <h2 className="mb-2 text-sm font-medium text-slate-700">Principaux points de blocage (par nombre de retards)</h2>
+          <QueryState requete={goulots} vide={(lignes) => lignes.length === 0}>
+            {(lignes) => <BottleneckTable lignes={lignes} />}
+          </QueryState>
+          <p className="mt-2 text-xs text-slate-500">Combinaisons d'au moins 100 expéditions. Cliquez sur un titre pour trier.</p>
         </section>
       </div>
     </div>

@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [messou-grace, main]
+  pull_request:
+    branches: [messou-grace, main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: supply
+          POSTGRES_USER: supply
+          POSTGRES_PASSWORD: supply_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U supply"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      SECRET_KEY: ci-secret
+      DEBUG: "True"
+      DATABASE_URL: postgres://supply:supply_ci@localhost:5432/supply
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r backend/requirements.txt
+      - run: cd backend && ruff check .
+      - run: cd backend && pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test

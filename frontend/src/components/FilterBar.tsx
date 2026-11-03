@@ -1,4 +1,4 @@
-import { useTransporteurs } from "@/api/hooks";
+import { useBottlenecks, useTransporteurs } from "@/api/hooks";
 import type { Filters } from "@/api/types";
 
 interface Props {
@@ -10,6 +10,11 @@ const CHAMP = "mt-1 block rounded border border-slate-300 bg-white px-2 py-1.5 t
 
 export default function FilterBar({ filtres, onChange }: Props) {
   const transporteurs = useTransporteurs();
+  const parRegion = useBottlenecks({}, "region", 100);
+  const regions = (parRegion.data ?? [])
+    .map((l) => l.region)
+    .filter((r): r is string => Boolean(r))
+    .sort((a, b) => a.localeCompare(b, "fr"));
   const filtresActifs = Object.keys(filtres).length > 0;
 
   return (
@@ -49,6 +54,22 @@ export default function FilterBar({ filtres, onChange }: Props) {
           {transporteurs.data?.map((t) => (
             <option key={t.code} value={t.code}>
               {t.nom}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="text-xs font-medium text-slate-500">
+        Région
+        <select
+          value={filtres.region ?? ""}
+          onChange={(e) => onChange({ region: e.target.value })}
+          className={CHAMP}
+        >
+          <option value="">Toutes</option>
+          {regions.map((r) => (
+            <option key={r} value={r}>
+              {r}
             </option>
           ))}
         </select>
