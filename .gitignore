@@ -1,17 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+*.pyc
 
-etl/*.csv
+# Environnement virtuel
+venv/
+.venv/
+env/
+ENV/
 
+# Variables d'environnement
 .env
+.env.*
+!.env.example
+
+!data/samples/*.csv
 data/raw/
 *.csv
-!data/samples/*.csv
-__pycache__/
-*.pyc
-.venv/
+
 node_modules/
-frontend/dist/
 .DS_Store
 .idea/
 .vscode/
 db.sqlite3
-data/processed/
