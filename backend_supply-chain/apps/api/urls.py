@@ -22,6 +22,8 @@ urlpatterns = [
     path("kpis/summary/", v.KpiSummaryView.as_view()),
     path("kpis/timeseries/", v.KpiTimeseriesView.as_view()),
     path("kpis/bottlenecks/", v.KpiBottlenecksView.as_view()),
+    path("kpis/sales-profits/", v.KpiSalesProfitsView.as_view()),
+    path("kpis/enriched/", v.KpiEnrichedView.as_view()),
     path("", include(router.urls)),
     path("agent/bottlenecks/explain/", BottleneckExplainView.as_view(), name="agent-bottleneck-explain"),
     path("agent/chat/", ChatView.as_view(), name="agent-chat"),

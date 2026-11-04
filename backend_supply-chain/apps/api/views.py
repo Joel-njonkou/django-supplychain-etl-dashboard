@@ -9,7 +9,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from . import kpis
+from . import analytics, kpis
 
 class TransporteurViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Transporteur.objects.all()
@@ -75,3 +75,41 @@ class KpiBottlenecksView(APIView):
         limit = min(int(q.get("limit", 10)), 100)
         min_volume = int(q.get("min_volume", settings.BOTTLENECK_MIN_VOLUME))
         return Response(kpis.bottlenecks(qs, by, min_volume, limit))
+
+
+class KpiSalesProfitsView(APIView):
+    """CA, profit, marge, tops segments/produits (équivalent ancien /api/ventes-profits/)."""
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("segment_client", str, description="ou alias segment"),
+            OpenApiParameter("marche", str, description="ou alias market"),
+            OpenApiParameter("region", str),
+            OpenApiParameter("transporteur", str),
+            OpenApiParameter("statut_livraison", str, description="ou alias delivery_status"),
+            OpenApiParameter("date_min", OpenApiTypes.DATE),
+            OpenApiParameter("date_max", OpenApiTypes.DATE),
+        ],
+        responses=OpenApiTypes.OBJECT,
+    )
+    def get(self, request):
+        return Response(analytics.sales_profits(request.query_params))
+
+
+class KpiEnrichedView(APIView):
+    """Analyse globale enrichie (équivalent ancien /api/vueses-globales-enrichies/)."""
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("segment_client", str, description="ou alias segment"),
+            OpenApiParameter("marche", str, description="ou alias market"),
+            OpenApiParameter("region", str),
+            OpenApiParameter("transporteur", str),
+            OpenApiParameter("statut_livraison", str, description="ou alias delivery_status"),
+            OpenApiParameter("date_min", OpenApiTypes.DATE),
+            OpenApiParameter("date_max", OpenApiTypes.DATE),
+        ],
+        responses=OpenApiTypes.OBJECT,
+    )
+    def get(self, request):
+        return Response(analytics.enriched(request.query_params))
