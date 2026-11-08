@@ -205,29 +205,6 @@ npm run lint
 
 Pour vérifier spécifiquement la génération OpenRouter, il faut une clé fonctionnelle, un modèle accessible et un compte disposant du quota nécessaire. Une réponse automatique de secours confirme les calculs de données, mais ne prouve pas que le modèle a généré l’explication.
 
-## 8. Questions qu’un enseignant peut poser
-
-**Pourquoi avoir séparé le pipeline ETL de l’API ?**  
+ 
 L’ETL prépare et charge les données ; l’API sert les données déjà organisées au frontend. Cette séparation permet de relancer l’import et d’utiliser les endpoints sans relire le gros CSV à chaque page.
 
-**Pourquoi agréger les lignes du CSV par commande ?**  
-Le fichier source peut contenir plusieurs lignes d’articles pour une même commande. Les agréger évite de compter une commande plusieurs fois dans les statistiques d’expédition.
-
-**Pourquoi garder les motifs de rejet ?**  
-Une donnée invalide ne doit pas être silencieusement devinée. Le pipeline l’écarte, explique pourquoi et produit un rapport pour pouvoir contrôler la qualité.
-
-**À quoi sert le JWT ?**  
-Le serveur fournit un jeton à la connexion. Le frontend le joint aux requêtes protégées ; Django REST Framework identifie l’utilisateur avant d’autoriser l’accès.
-
-**Le modèle IA calcule-t-il les KPI ?**  
-Non. Django calcule les chiffres depuis PostgreSQL. Le modèle reçoit les résultats utiles pour rédiger une explication ; les garde-fous vérifient que la sortie respecte le format et ne cite pas de nombres absents des preuves.
-
-**Que signifie « retards en excès » ?**  
-C’est une comparaison avec le taux global : elle aide à distinguer un groupe souvent en retard parce qu’il traite beaucoup d’expéditions d’un groupe dont le taux de retard est particulièrement élevé. Ce classement est un signal à examiner, pas une preuve de causalité.
-
-**Pourquoi l’actualisation peut-elle échouer alors que le chat répond ?**  
-Les questions suggérées du chat passent par des calculs Django directs. Le bouton d’explication demande une génération à OpenRouter. Un 402 indique un problème de crédits/budget côté fournisseur, pas un défaut du calcul ni une permission manquante dans Django.
-
-## 9. Bien présenter son travail
-
-Pour une présentation honnête et convaincante, soyez capable de lancer le projet, de suivre une requête de la page jusqu’à la vue Django, d’expliquer les règles de transformation et de montrer un test correspondant à une règle métier. Choisissez une partie du code, modifiez-la vous-même, relancez ses tests et expliquez le résultat. Distinguez clairement ce que vous avez personnellement conçu ou adapté, ce que vous avez appris en cours de route et les outils qui vous ont aidé ; ne présentez pas comme personnel un travail que vous ne pouvez pas expliquer.
