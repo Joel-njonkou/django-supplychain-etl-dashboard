@@ -185,12 +185,3 @@ data/
   raw/                      Emplacement attendu du fichier source complet
 ```
 
-## Quelques commandes utiles
-
-Arrêter la base de développement :
-
-```sh
-docker compose down
-```
-
-Lancer l’interface Django d’administration : ouvrir `http://127.0.0.1:8000/admin/` après avoir créé un superutilisateur.
