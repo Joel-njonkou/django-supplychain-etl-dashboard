@@ -6,6 +6,11 @@ Le tableau de bord présente les indicateurs globaux, leur évolution dans le te
 
 Pour comprendre plus en détail l’architecture, le backend, le pipeline ETL et le fonctionnement de l’agent, consultez le [guide de compréhension du projet](./GUIDE_COMPRENDRE_LE_PROJET.md).
 
+## Participants
+- Johann Frédéric ZINTCHEM
+- MESSOU TCHASSEM Amanda Grace
+- NJONKOU TONDA Joel
+
 ## Ce que contient le projet
 
 - **Backend Django et Django REST Framework** : authentification JWT, endpoints de données, indicateurs et analyses.
